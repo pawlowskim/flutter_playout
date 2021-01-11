@@ -38,6 +38,9 @@ class Video extends StatefulWidget {
   final double position;
   final Function onViewCreated;
   final PlayerState desiredState;
+  /// Set to true if you are using local asset file, bundled within the app.
+  /// For instance from "assets" folder from flutter.
+  final bool localAsset;
 
   const Video(
       {Key key,
@@ -53,7 +56,8 @@ class Video extends StatefulWidget {
       this.position = -1,
       this.onViewCreated,
       this.desiredState = PlayerState.PLAYING,
-      this.textTracks})
+      this.textTracks,
+      this.localAsset = false})
       : super(key: key);
 
   @override
@@ -128,6 +132,7 @@ class _VideoState extends State<Video> {
             "preferredAudioLanguage": widget.preferredAudioLanguage ?? "mul",
             "isLiveStream": widget.isLiveStream,
             "position": widget.position,
+            "localAsset": widget.localAsset
           },
           creationParamsCodec: const JSONMessageCodec(),
           onPlatformViewCreated: (viewId) {
@@ -259,6 +264,8 @@ class _VideoState extends State<Video> {
           "subtitle": widget.subtitle,
           "isLiveStream": widget.isLiveStream,
           "showControls": widget.showControls,
+          "localAsset": widget.localAsset,
+          "position": widget.position,
         });
       }
     }

@@ -36,7 +36,7 @@ class VideoPlayerFactory: NSObject, FlutterPlatformViewFactory {
     
     public func create(withFrame frame: CGRect, viewIdentifier viewId: Int64, arguments args: Any?) -> FlutterPlatformView {
         
-        self.videoPlayer = VideoPlayer(frame: frame, viewId: viewId, messenger: messenger, args: args)
+        self.videoPlayer = VideoPlayer(frame: frame, viewId: viewId, messenger: messenger, args: args, registrar: self.registrar!)
         
         self.registrar?.addApplicationDelegate(self.videoPlayer!)
         
@@ -56,6 +56,8 @@ class VideoPlayer: NSObject, FlutterPlugin, FlutterStreamHandler, FlutterPlatfor
     
     static func register(with registrar: FlutterPluginRegistrar) { }
     
+    var registrar:FlutterPluginRegistrar
+    
     /* view specific properties */
     var frame:CGRect
     var viewId:Int64
@@ -73,6 +75,7 @@ class VideoPlayer: NSObject, FlutterPlugin, FlutterStreamHandler, FlutterPlatfor
     var isLiveStream:Bool = false
     var showControls:Bool = false
     var position:Double = 0.0
+    var localAsset:Bool = false
 
     private var mediaDuration = 0.0
 
@@ -93,8 +96,10 @@ class VideoPlayer: NSObject, FlutterPlugin, FlutterStreamHandler, FlutterPlatfor
         print("[dealloc] tv.mta/NativeVideoPlayer")
     }
 
-    init(frame:CGRect, viewId: Int64, messenger: FlutterBinaryMessenger, args: Any?) {
+    init(frame:CGRect, viewId: Int64, messenger: FlutterBinaryMessenger, args: Any?, registrar:FlutterPluginRegistrar) {
 
+        self.registrar = registrar
+        
         /* set view properties */
         self.frame = frame
         self.viewId = viewId
@@ -122,6 +127,7 @@ class VideoPlayer: NSObject, FlutterPlugin, FlutterStreamHandler, FlutterPlatfor
         self.isLiveStream = parsedData["isLiveStream"] as! Bool
         self.showControls = parsedData["showControls"] as! Bool
         self.position = parsedData["position"] as! Double
+        self.localAsset = parsedData["localAsset"] as! Bool
 
         setupPlayer()
     }
@@ -157,6 +163,7 @@ class VideoPlayer: NSObject, FlutterPlugin, FlutterStreamHandler, FlutterPlatfor
                 self.isLiveStream = parsedData["isLiveStream"] as! Bool
                 self.showControls = parsedData["showControls"] as! Bool
                 self.position = parsedData["position"] as! Double
+                self.localAsset = parsedData["localAsset"] as! Bool
 
                 self.onMediaChanged()
 
@@ -209,7 +216,7 @@ class VideoPlayer: NSObject, FlutterPlugin, FlutterStreamHandler, FlutterPlatfor
     }
 
     func setupPlayer(){
-        if let videoURL = URL(string: self.url.trimmingCharacters(in: .whitespacesAndNewlines)) {
+        if let videoURL = getVideoUrl() {
 
             do {
                 let audioSession = AVAudioSession.sharedInstance()
@@ -288,6 +295,20 @@ class VideoPlayer: NSObject, FlutterPlugin, FlutterStreamHandler, FlutterPlatfor
             
         }
     }
+
+    func getVideoUrl() -> URL? {
+        if (self.localAsset == true){
+            let localPath = registrar.lookupKey(forAsset: self.url)
+            if let pathString = Bundle.main.path(forResource: localPath.trimmingCharacters(in: .whitespacesAndNewlines), ofType: nil) {
+                return URL(fileURLWithPath: pathString)
+            }
+        } else {
+            if let videoURL = URL(string: self.url.trimmingCharacters(in: .whitespacesAndNewlines)) {
+                return videoURL
+            }
+        }
+        return nil
+    }
     
     /* create player view */
     func view() -> UIView {
@@ -298,7 +319,7 @@ class VideoPlayer: NSObject, FlutterPlugin, FlutterStreamHandler, FlutterPlatfor
     private func onMediaChanged() {
         if let p = self.player {
             
-            if let videoURL = URL(string: self.url) {
+            if let videoURL = getVideoUrl() {
                 
                 /* create the new asset to play */
                 let asset = AVAsset(url: videoURL)
