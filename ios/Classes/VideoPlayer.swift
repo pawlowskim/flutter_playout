@@ -285,7 +285,7 @@ class VideoPlayer: NSObject, FlutterPlugin, FlutterStreamHandler, FlutterPlatfor
             if (self.loop) {
                 NotificationCenter.default.addObserver(forName: NSNotification.Name.AVPlayerItemDidPlayToEndTime, object: nil, queue: nil) { [self] notification in
                     self.player?.seek(to: CMTime.zero)
-                    player?.play()
+                    self.player?.play()
                 }
             }
             
